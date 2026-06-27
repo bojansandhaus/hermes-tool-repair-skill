@@ -1,12 +1,22 @@
-# Hermes Tool Repair Skill
+# Tool Repair Harness
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)
-[![GitHub](https://img.shields.io/badge/GitHub-repo-181717?logo=github)](https://github.com/bojansandhaus/hermes-tool-repair-skill)
 
-A **harness-level** fix for LLM tool calling. Catches the common JSON formatting mistakes open models make and fixes them deterministically before the tool executor ever sees them. The model benefits from repair notes in the tool result, but the actual repair happens in the harness layer. No model changes needed.
+A **harness-level** fix for LLM tool calling. Catches the common JSON
+formatting mistakes open models make and fixes them deterministically before
+the tool executor ever sees them. Ships with adapters for three agent
+frameworks:
 
-Based on the approach that made DeepSeek V4 Pro outperform Opus 4.7 on tool calling (see [CommandCode's post](https://x.com/CommandCodeAI/status/1927626163496718571) and [YouTube deep dive](https://www.youtube.com/watch?v=f61DCDwvFis)).
+| Adapter | Language | Repair strategy |
+|---------|----------|-----------------|
+| **Hermes** (built-in) | Python | Mutate args pre-dispatch + repair notes via side-channel |
+| **OpenCode** (plugin) | TypeScript | `tool.execute.before` hook, mutates args directly |
+| **Claude Code** (hooks) | Bash + jq | `PreToolUse` block + `PostToolUse` telemetry (limited, no arg mutation) |
+
+Based on the approach that made DeepSeek V4 Pro outperform Opus 4.7 on tool
+calling (see [CommandCode's post](https://x.com/CommandCodeAI/status/1927626163496718571)
+and [YouTube deep dive](https://www.youtube.com/watch?v=f61DCDwvFis)).
 
 ## The Problem
 
@@ -89,6 +99,24 @@ The model reads the repair note alongside the successful result and adapts on th
 
 `references/plugin.yaml` plus `plugin-architecture.md`. A blueprint for packaging the repair logic as a proper Hermes plugin with telemetry, dashboard, and config. Needs a `pre_tool_call` hook that supports argument modification (not currently available in Hermes hook system).
 
+## Adapted For Other Frameworks
+
+This repo ships adapters for two other agent frameworks in the `adapters/`
+directory. Each adapter wraps the same core `tool_repair.py` library with the
+harness-specific wiring.
+
+| Adapter | Location | Key mechanism |
+|---------|----------|--------------|
+| Hermes (built-in) | `SKILL.md` + agent-core patches | `sanitize_tool_call_arguments` pre-dispatch + side-channel for repair notes |
+| OpenCode | `adapters/opencode/` | `tool.execute.before` TS plugin, mutates args directly |
+| Claude Code | `adapters/claude-code/` | `PreToolUse` block + `PostToolUse` telemetry (bash + jq) |
+
+OpenCode has the cleanest integration because its `tool.execute.before` hook
+supports argument mutation. Claude Code is the most limited. `PreToolUse`
+can only block, not mutate, so it wastes a turn when it detects a pattern.
+
+See each adapter's README for setup instructions.
+
 ## Safety Guarantees
 
 - **Valid inputs are never touched.** The first step is always "try the input as-is." Only paths that fail validation get repaired.
@@ -98,56 +126,89 @@ The model reads the repair note alongside the successful result and adapts on th
 
 ## Dependencies
 
-The core library (`tool_repair.py`) needs nothing beyond Python standard library. The Hermes integration needs Hermes Agent (any recent version) and is a three-file drop-in:
+The core library (`tool_repair.py`) needs nothing beyond Python standard library.
 
-- `agent/tool_repair.py` (the repair library)
-- Two lines added to `agent/agent_runtime_helpers.py`
-- Two lines added to `agent/tool_dispatch_helpers.py`
+| Adapter | Dependencies |
+|---------|-------------|
+| Hermes | Hermes Agent (any recent version) |
+| OpenCode | TypeScript, OpenCode CLI |
+| Claude Code | bash, jq |
 
-No pip packages, no npm modules, no external services.
+No pip packages, no npm modules, no external services for the core library.
 
 ## How to Install
 
-### Option 1: Minimal (just the library)
-
-Drop `references/tool_repair.py` anywhere in your Python path:
+### Core library (any framework)
 
 ```bash
 cp references/tool_repair.py /your/project/tool_repair.py
 ```
-
-Then import and use it directly:
 
 ```python
 from tool_repair import repair_function_args
 fixed, notes = repair_function_args("my_tool", {"some_field": None})
 ```
 
-### Option 2: Hermes Agent integration
+### Hermes Agent
 
-Copy the files and apply the two small patches described above:
+Copy the library and apply the two patches described in Components:
 
 ```bash
-# 1. Copy the library into Hermes agent directory
 cp references/tool_repair.py /path/to/hermes/agent/tool_repair.py
-
-# 2. The patches are detailed in the Components section above.
 ```
 
-The integration automatically catches bad tool calls from any model. Enable or disable in your Hermes config:
+Enable in `~/.hermes/config.yaml`:
 
 ```yaml
-# ~/.hermes/config.yaml
 agent:
-  tool_repair: true  # default: true
+  tool_repair: true
 ```
 
-### Option 3: Clone the repo
+### OpenCode
+
+Copy the TypeScript adapter into your OpenCode plugins directory:
+
+```bash
+cp -r adapters/opencode/* ~/.config/opencode/plugins/
+```
+
+Or install the npm package (once published):
+
+```json
+{
+  "plugin": ["tool-repair-harness-opencode"]
+}
+```
+
+### Claude Code
+
+Copy the hook scripts and configure in `claude.json`:
+
+```bash
+cp adapters/claude-code/*.sh .claude/hooks/
+chmod +x .claude/hooks/*.sh
+```
+
+```json
+{
+  "hooks": {
+    "pre_tool_use": {
+      "matcher": "*",
+      "command": "bash .claude/hooks/pre_tool_use.sh"
+    },
+    "post_tool_use": {
+      "matcher": "*",
+      "command": "bash .claude/hooks/post_tool_use.sh"
+    }
+  }
+}
+```
+
+### Clone the repo
 
 ```bash
 git clone https://github.com/bojansandhaus/hermes-tool-repair-skill.git
 cd hermes-tool-repair-skill
-cp references/tool_repair.py /wherever/you/need/it/
 ```
 
 ## Usage
@@ -177,9 +238,12 @@ Already wired in. No additional setup needed. The integration lives in `sanitize
 - [x] Core repair library (5 pattern fixes)
 - [x] Hermes integration (sanitize + tool result pipeline)
 - [x] Repair note side channel (model self-correction)
+- [x] OpenCode adapter (TypeScript plugin)
+- [x] Claude Code adapter (bash + jq hooks)
 - [ ] Schema-aware repairs (type inference from JSON schema)
 - [ ] Per-model repair telemetry (dashboard tab)
 - [ ] Model-specific repair profiles (DeepSeek, GLM, Kimi quirks)
+- [ ] Rename repo to match multi-harness scope
 
 ## License
 
