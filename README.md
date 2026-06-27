@@ -12,7 +12,7 @@ These mistakes are not random. They are a small finite set of four patterns caus
 
 ### Harness vs Model
 
-Most people frame this as a model problem: "DeepSeek is bad at tool calling, wait for the next version." That is wrong. It is a **harness** problem. The harness sits between the model and the tool executor. It decides what to do with the model's output — reject it and waste tokens retrying, or fix it silently and move on. A harness that repairs deterministically turns a "bad at tool calling" model into a functional one in 200 lines of code.
+Most people frame this as a model problem: "DeepSeek is bad at tool calling, wait for the next version." That is wrong. It is a **harness** problem. The harness sits between the model and the tool executor. It decides what to do with the model's output: reject it and waste tokens retrying, or fix it silently and move on. A harness that repairs deterministically turns a "bad at tool calling" model into a functional one in 200 lines of code.
 
 The model did not change. The harness got more forgiving in exactly the places it needed to be.
 

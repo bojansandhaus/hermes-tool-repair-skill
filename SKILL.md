@@ -1,6 +1,6 @@
 ---
 name: tool-call-repair-patterns
-description: Validate-then-repair patterns for tool call resilience — four deterministic repairs, repair notes, and the structural insight that tool confusion is a harness problem, not a model problem. Based on CommandCode's approach that made DeepSeek V4 Pro outperform Opus 4.7 on tool calling.
+description: "Validate-then-repair patterns for tool call resilience. Four deterministic repairs, repair notes, and the structural insight that tool confusion is a harness problem, not a model problem. Based on CommandCode's approach that made DeepSeek V4 Pro outperform Opus 4.7 on tool calling."
 version: 1.0.0
 author: Hermione
 ---
@@ -9,7 +9,7 @@ author: Hermione
 
 ## The Core Insight
 
-When I hear "open model can't do tool calls," it's almost always a harness problem, not a model problem. Open models fail on tool calls because their training distributions leak through the tool boundary — auto-linking paths, sending null for optional fields, stringifying arrays. Commercial models eat these costs invisibly because they've seen enough contract variants during pretraining.
+When I hear "open model can't do tool calls," it's almost always a harness problem, not a model problem. Open models fail on tool calls because their training distributions leak through the tool boundary : auto-linking paths, sending null for optional fields, stringifying arrays. Commercial models eat these costs invisibly because they've seen enough contract variants during pretraining.
 
 The fix isn't fine-tuning the model. It's making the contract more forgiving in exactly the places it needs to be.
 
@@ -36,13 +36,13 @@ model output ──→  │  JSON parse → schema validate → [pass] │
 
 ## The Four Universal Repair Patterns
 
-Across DeepSeek-Flash, DeepSeek V4 Pro, GLM, Qwen — the same four mistakes repeat. ~90% of all tool call failures are one of these.
+Across DeepSeek-Flash, DeepSeek V4 Pro, GLM, Qwen : the same four mistakes repeat. ~90% of all tool call failures are one of these.
 
 ### 1. Null-Omit: `null` for optional fields
 
 Symptom: The model sends `{"command": "ls", "timeout": null}` where timeout is optional. The schema rejects because it expects either a number or undefined, not null.
 
-Fix: Walk the parsed JSON. For any field whose value is `null`, delete the key entirely (omit it). A field that isn't present satisfies any optional schema. This works because the model's intent is clear — it wanted to leave it unset, but its training distribution leaked `null` instead of omission.
+Fix: Walk the parsed JSON. For any field whose value is `null`, delete the key entirely (omit it). A field that isn't present satisfies any optional schema. This works because the model's intent is clear : it wanted to leave it unset, but its training distribution leaked `null` instead of omission.
 
 ### 2. Json-Array-Parse: `"[\"a\",\"b\"]"` as a string
 
@@ -50,7 +50,7 @@ Symptom: The model emits `{"files": "[\"src/main.ts\",\"src/utils.ts\"]"}` where
 
 Fix: If a field's value is a string that looks like a JSON array (starts with `[`, ends with `]`), try to parse it. Replace the string with the parsed array.
 
-**Ordering constraint:** This must run BEFORE Bare-String-Wrap. Otherwise `"[\"a\",\"b\"]"` becomes `["[\"a\",\"b\"]"]` — a single-element array containing the stringified version.
+**Ordering constraint:** This must run BEFORE Bare-String-Wrap. Otherwise `"[\"a\",\"b\"]"` becomes `["[\"a\",\"b\"]"]` : a single-element array containing the stringified version.
 
 ### 3. Empty-Object-To-Array: `{}` as array placeholder
 
@@ -69,10 +69,10 @@ Fix: If the schema expects an array at this path and the value is a string, wrap
 After every successful repair, append a compact note to the tool result:
 
 ```
-[Repair note: the "offset" field was null — omitted it. The schema accepts undefined for optional fields but not null.]
+[Repair note: the "offset" field was null : omitted it. The schema accepts undefined for optional fields but not null.]
 ```
 
-The model reads this alongside the successful result and self-corrects on the next turn. Without the repair note, open models tend to repeat the same mistake (they have "alpha male energy" — convinced their output is correct and the validator is wrong). The note breaks this loop.
+The model reads this alongside the successful result and self-corrects on the next turn. Without the repair note, open models tend to repeat the same mistake (they have "alpha male energy" : convinced their output is correct and the validator is wrong). The note breaks this loop.
 
 **The driving analogy:** You can let the learner hit the truck and then explain (waste tokens, break flow, degrade output quality). Or you can stop them before impact, fix the steering, and explain while they're still moving. The model stays in flow and the output quality never drops.
 
@@ -90,7 +90,7 @@ Relational problems (paired fields that must co-occur) → need a different appr
 
 1. Default intelligently: `limit` without `offset` → offset = 0. `offset` without `limit` → limit = tool's sensible max (e.g. 2000 lines for read_file).
 2. Surface the choice: "Note: limit was not provided; defaulted to 2000 lines. To read more or fewer lines, retry with both offset and limit."
-3. No `Error:` prefix — don't paint it red in the UI. The model sees what we picked and self-corrects if wrong.
+3. No `Error:` prefix : don't paint it red in the UI. The model sees what we picked and self-corrects if wrong.
 
 **Repair where you can. Extend semantics where you can't. Surface the choice either way.**
 
@@ -102,7 +102,7 @@ DeepSeek models sometimes emit file paths as markdown auto-links:
 {"filePath": "/Users/x/proj/[notes.md](http://notes.md)"}
 ```
 
-This isn't a hallucination — it's the post-training chat distribution leaking through the tool boundary. The model has been rewarded for auto-linking URLs in conversational output and applies the same prior inside a tool call where it makes no sense.
+This isn't a hallucination : it's the post-training chat distribution leaking through the tool boundary. The model has been rewarded for auto-linking URLs in conversational output and applies the same prior inside a tool call where it makes no sense.
 
 Fix: Two regex lines that detect the degenerate case where link text equals the URL path (without protocol). Real markdown like `[click](https://x.com)` passes through untouched.
 
@@ -142,8 +142,8 @@ Track in a simple JSON file or statsd metric. Watch for:
 
 When I receive a validation error from a tool, I should:
 
-1. **Stay calm** — it's almost certainly one of the four patterns above. Don't waste context re-reading the entire schema.
-2. **Be surgical** — the error message tells me exactly which field and what type was expected. Fix only that field.
+1. **Stay calm** : it's almost certainly one of the four patterns above. Don't waste context re-reading the entire schema.
+2. **Be surgical** : the error message tells me exactly which field and what type was expected. Fix only that field.
 3. **Note the fix** in my reasoning so I don't repeat it this session.
 4. **Use the first successful call's repair pattern** as a template for the rest of the session (the model tends to make the same mistake consistently within a session).
 
@@ -153,7 +153,7 @@ This skill ships with a working Python repair library at `references/tool_repair
 
 ### Integration point
 
-The function `sanitize_tool_call_arguments` in `agent/agent_runtime_helpers.py` (line 237) already walks tool_calls and repairs JSON — but only catches `json.JSONDecodeError` and replaces the entire thing with `{}`. The upgrade:
+The function `sanitize_tool_call_arguments` in `agent/agent_runtime_helpers.py` (line 237) already walks tool_calls and repairs JSON : but only catches `json.JSONDecodeError` and replaces the entire thing with `{}`. The upgrade:
 
 1. Drop `tool_repair.py` into `agent/tool_repair.py`
 2. After `json.loads(arguments)` succeeds, add:
@@ -164,13 +164,13 @@ The function `sanitize_tool_call_arguments` in `agent/agent_runtime_helpers.py` 
 
 ### Plugin limitation
 
-The `pre_tool_call` hook only supports **blocking** a tool with a return message — it cannot modify arguments. A proper repair plugin needs a hook that can mutate args before execution. Until that exists, the agent-core modification above is the only path.
+The `pre_tool_call` hook only supports **blocking** a tool with a return message : it cannot modify arguments. A proper repair plugin needs a hook that can mutate args before execution. Until that exists, the agent-core modification above is the only path.
 
 ### Available reference files
 
 | File | Purpose |
 |------|---------|
-| `references/tool_repair.py` | Working Python library — import and call `repair_function_args()` |
+| `references/tool_repair.py` | Working Python library : import and call `repair_function_args()` |
 | `references/plugin-architecture.md` | Full plugin architecture proposal with config, hooks, telemetry, schema hints |
 | `references/plugin.yaml` | Example plugin.yaml for a Hermes tool-repair plugin |
 
