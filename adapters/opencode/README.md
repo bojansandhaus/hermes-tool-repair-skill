@@ -1,4 +1,4 @@
-# Tool Repair — OpenCode Adapter
+# Tool Repair - OpenCode Adapter
 
 A plugin that catches the four common JSON formatting mistakes open models make
 in tool calls and fixes them before the tool executor sees them. No model
@@ -43,7 +43,7 @@ Add to your `~/.config/opencode/opencode.json`:
 
 | File | Purpose |
 |------|---------|
-| `plugin.ts` | OpenCode plugin — hooks `tool.execute.before` and `tool.execute.after` |
+| `plugin.ts` | OpenCode plugin - hooks `tool.execute.before` and `tool.execute.after` |
 | `tool_repair.ts` | TypeScript port of the four universal repair patterns |
 
 ## The Four Patterns

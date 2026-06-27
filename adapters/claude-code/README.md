@@ -1,7 +1,7 @@
-# Tool Repair — Claude Code Adapter
+# Tool Repair - Claude Code Adapter
 
 Claude Code's hook system fires shell scripts at lifecycle events, but
-**PreToolUse cannot modify tool arguments** — it can only block the call.
+**PreToolUse cannot modify tool arguments** - it can only block the call.
 This makes Claude Code the most limited of the three adapters for
 deterministic repair.
 
