@@ -1,4 +1,4 @@
-# Hermes Tool Repair
+# Hermes Tool Repair Skill
 
 Deterministic tool call repair for LLM agents. Catches the four common JSON formatting mistakes open models make and fixes them before they reach the tool executor, with repair notes that teach the model to self-correct.
 
