@@ -2,6 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)
+[![GitHub](https://img.shields.io/badge/GitHub-repo-181717?logo=github)](https://github.com/bojansandhaus/tool-repair-skill-for-hermes-and-opencode)
 
 A **harness-level** fix for LLM tool calling. Catches the common JSON
 formatting mistakes open models make and fixes them deterministically before
