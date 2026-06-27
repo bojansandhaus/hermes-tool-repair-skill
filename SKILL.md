@@ -59,7 +59,7 @@ Symptom: The model emits `{"files": "[\"src/main.ts\",\"src/utils.ts\"]"}` where
 
 Fix: If a field's value is a string that looks like a JSON array (starts with `[`, ends with `]`), try to parse it. Replace the string with the parsed array.
 
-**Ordering constraint:** This must run BEFORE Bare-String-Wrap. Otherwise `"[\"a\",\"b\"]"` becomes `["[\"a\",\"b\"]"]` — a single-element array containing the stringified version.
+**Ordering constraint:** This must run BEFORE Bare-String-Wrap. Otherwise `"[\"a\",\"b\"]"` becomes `["[\"a\",\"b\"]"]`: a single-element array containing the stringified version.
 
 ### 3. Empty-Object-To-Array: `{}` as array placeholder
 
@@ -99,7 +99,7 @@ Relational problems (paired fields that must co-occur) → need a different appr
 
 1. Default intelligently: `limit` without `offset` → offset = 0. `offset` without `limit` → limit = tool's sensible max (e.g. 2000 lines for read_file).
 2. Surface the choice: "Note: limit was not provided; defaulted to 2000 lines. To read more or fewer lines, retry with both offset and limit."
-3. No `Error:` prefix — don't paint it red in the UI. The model sees what we picked and self-corrects if wrong.
+3. No `Error:` prefix. Don't paint it red in the UI. The model sees what we picked and self-corrects if wrong.
 
 **Repair where you can. Extend semantics where you can't. Surface the choice either way.**
 
@@ -222,7 +222,7 @@ When I receive a validation error from a tool, I should:
 3. **Note the fix** in my reasoning so I don't repeat it this session.
 4. **Use the first successful call's repair pattern** as a template for the rest of the session (the model tends to make the same mistake consistently within a session).
 
-## Hermes Integration (Complete — Built and Tested)
+## Hermes Integration (Complete: Built and Tested)
 
 This skill ships with a working Python repair library at `references/tool_repair.py` that is **now integrated into the Hermes agent core**. The integration uses a side-channel pattern because Hermes' plugin hooks do not support argument mutation.
 
@@ -232,7 +232,7 @@ This skill ships with a working Python repair library at `references/tool_repair
 |------|--------|-------------|
 | `agent/agent_runtime_helpers.py` | Added `_SEMANTIC_REPAIR_NOTES` dict + `pop_semantic_repair_notes()` helper + semantic repair call in `sanitize_tool_call_arguments()` | ~30 |
 | `agent/tool_dispatch_helpers.py` | Added `_pop_repair_notes()` helper + repair note appending logic inside `make_tool_result_message()` | ~25 |
-| `agent/tool_repair.py` | New file — the repair library | 297 |
+| `agent/tool_repair.py` | New file: the repair library | 297 |
 
 ### How the side channel works
 
@@ -263,13 +263,13 @@ sanitize_tool_call_arguments()                make_tool_result_message()
 
 ### Plugin limitation
 
-The `pre_tool_call` hook only supports blocking a tool — it cannot modify arguments. Until hooks support argument mutation, the agent-core modification is the only path. See `references/plugin-architecture.md`.
+The `pre_tool_call` hook only supports blocking a tool. It cannot modify arguments. Until hooks support argument mutation, the agent-core modification is the only path. See `references/plugin-architecture.md`.
 
 ### Available reference files
 
 | File | Purpose |
 |------|---------|
-| `references/tool_repair.py` | Working Python library — import and call `repair_function_args()` |
+| `references/tool_repair.py` | Working Python library. Import and call `repair_function_args()` |
 | `references/plugin-architecture.md` | Full plugin architecture proposal with config, hooks, telemetry, schema hints |
 | `references/plugin.yaml` | Example plugin metadata |
 | `references/gitflic-publishing.md` | GitFlic API reference for creating repos and pushing to secondary remote |
