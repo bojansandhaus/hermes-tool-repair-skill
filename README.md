@@ -244,7 +244,6 @@ Already wired in. No additional setup needed. The integration lives in `sanitize
 - [ ] Schema-aware repairs (type inference from JSON schema)
 - [ ] Per-model repair telemetry (dashboard tab)
 - [ ] Model-specific repair profiles (DeepSeek, GLM, Kimi quirks)
-- [x] Rename repo to tool-repair-skill-for-hermes-and-opencode
 
 ## License
 
